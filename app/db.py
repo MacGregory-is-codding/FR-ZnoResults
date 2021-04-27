@@ -1,7 +1,7 @@
 import time
 import csv
 
-from pymongo import MongoClient, errors
+from pymongo import MongoClient, errors, DESCENDING
 
 from .config import DB_INFO
 
@@ -21,7 +21,7 @@ class DataBase:
                 self.client = MongoClient(f'mongodb://{host}:{port}')
                 self.db = self.client[name]
                 self.collection = self.db['zno']
-                #self.collection.drop()
+                self.collection.drop()
                 break
             except errors.ConnectionFailure as e:
                 print(f'Connection failure with "{e}" error')
@@ -42,7 +42,8 @@ class DataBase:
     def get_statistic(self):
         return self.collection.aggregate([
                 {'$match' : {'UkrTestStatus' : 'Зараховано'}}, 
-                {'$group' : {'_id' : '$REGNAME', 'MaxUkrBal' : {'$max' : '$UkrBall100'}}}
+                {'$group' : {'_id' : '$REGNAME', 'MaxUkrBal' : {'$max' : '$UkrBall100'}}},
+                {'$sort' : {'MaxUkrBal' : DESCENDING}}
             ]
         )
 
