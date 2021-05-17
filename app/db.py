@@ -1,5 +1,6 @@
 import time
 import csv
+from typing import Counter
 
 from pymongo import MongoClient, errors, DESCENDING
 
@@ -21,7 +22,6 @@ class DataBase:
                 self.client = MongoClient(f'mongodb://{host}:{port}')
                 self.db = self.client[name]
                 self.collection = self.db['zno']
-                self.collection.drop()
                 break
             except errors.ConnectionFailure as e:
                 print(f'Connection failure with "{e}" error')
@@ -34,16 +34,29 @@ class DataBase:
             header = next(reader)
 
             for row in reader:
+                c = 0
                 doc={}
+                inner_arr={}
                 for n in range(0, len(header)):
-                    doc[header[n]] = row[n]
-                self.collection.insert(doc)
+                    c += 1
+                    if row[n] != 'null':
+                        if c > 15:
+                            inner_arr[header[n]] = row[n]
+                        else:
+                            doc[header[n]] = row[n]
+                doc['results'] = [].append(inner_arr)
+                try:
+                    self.collection.insert_one(doc)
+                    #print(doc)
+                except Exception as e:
+                    print(f'Insert error:\n{doc}\n{e}')
 
     def get_statistic(self):
         return self.collection.aggregate([
-                {'$match' : {'UkrTestStatus' : 'Зараховано'}}, 
-                {'$group' : {'_id' : '$REGNAME', 'MaxUkrBal' : {'$max' : '$UkrBall100'}}},
-                {'$sort' : {'MaxUkrBal' : DESCENDING}}
+                {'$match'  : {'results.UkrTestStatus' : 'Зараховано'}}, 
+                {'$unwind' : '$results'},
+                {'$group'  : {'_id' : '$REGNAME', 'MaxUkrBal' : {'$max' : '$results.UkrBall100'}}},
+                {'$sort'   : {'MaxUkrBal' : DESCENDING}}
             ]
         )
 

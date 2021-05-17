@@ -16,8 +16,6 @@ def write_statistic_to_csv(cursor):
         for row in cursor:
             writer.writerow(list(row.values()))
 
-
-
 def main():
     downloader = Downloader()
     extracter = Extracter()
@@ -45,17 +43,24 @@ def main():
     print('Successfully connected to database.')
     
     for csv_file in csv_files:
-        db.load_csv_to_db(csv_file)
-        print(f'Data from {csv_file} is successfully loaded to database.')
-        os.remove(csv_file)
-        print(f'{csv_file} is successfully remowed.')
+        try:
+            db.load_csv_to_db(csv_file)
+            print(f'Data from {csv_file} is successfully loaded to database.')
+        except Exception as e:
+            print(f'Error! Unable to load file {csv_file} with {e} exception')
+        finally:
+            os.remove(csv_file)
+            print(f'{csv_file} is successfully remowed.')
 
-    statistic = db.get_statistic()
-    write_statistic_to_csv(statistic)
-    print('Statistic is successfully loaded to csv file.')
-
-    db.close()
-    print('Database is closed.')
+    try:
+        statistic = db.get_statistic()
+        write_statistic_to_csv(statistic)
+        print('Statistic is successfully loaded to csv file.')
+    except Exception as e:
+        print(f'Unable to get statistic from DB!\n{e}')
+    finally:
+        db.close()
+        print('Database is closed.')
 
 if __name__ == "__main__":
     main()
